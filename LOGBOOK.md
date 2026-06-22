@@ -28,8 +28,18 @@
 - GPU handoff: only image *generation* (SD/SDXL) needs GPU. Set
   `USE_SYNTHETIC=False` and feed real CIFAR + SD fakes to get the headline table
   on real data. SD1.5 fits free Colab T4; SDXL wants L4/A100. See MATH.md table.
-- Next: run on the real CIFAR/SD outputs from Notebook 1; sweep `gain_clip`;
-  optionally add SDXL as a second generator.
+- Identified reference paper: SPAI (arXiv 2411.19417, CVPR 2025).
+  Code: https://github.com/mever-team/spai
+  Key insight: SPAI uses a frozen ViT-B/16 (MFM pre-trained) + Spectral
+  Reconstruction Similarity (SRS) + Spectral Context Attention (SCA).
+  It models the real spectral distribution in *latent* space, not hand-crafted
+  radial profiles - making it a learned version of freqgen's spectral_report.
+- Added SPAI section to MATH.md: architecture breakdown, comparison table,
+  and the key open question: does the radial matching attack evade SPAI too?
+  If yes -> CVPR 2025 SOTA has a gap; if no -> learned detectors are robust.
+  Either is publishable. SPAI inference needs <8GB GPU (free T4 enough).
+- Next: download SPAI weights, run inference on raw vs matched fakes on Colab T4,
+  report SPAI score change -> that is the headline result.
 
 ## 2026-06-07
 

@@ -1,5 +1,11 @@
 # freqgen — the idea, the math, and the work so far
 
+> **Reference paper:** SPAI — *Any-Resolution AI-Generated Image Detection by Spectral Learning*
+> arXiv: [2411.19417](https://arxiv.org/abs/2411.19417) · CVPR 2025
+> Code: [github.com/mever-team/spai](https://github.com/mever-team/spai)
+> Project page: [mever-team.github.io/spai](https://mever-team.github.io/spai)
+
+
 This file has three layers: a **plain-English** version (no math), the **actual
 math**, and a **work log** of what is built and verified. Read whichever layer
 you need. GPU requirements are at the bottom.
@@ -166,7 +172,76 @@ Evasion (60 real / 60 fake / 60 matched):
 
 ---
 
-## 4. Where a GPU is needed, and roughly how much
+## 4. Key clues from SPAI (the reference paper)
+
+SPAI is a **CVPR 2025** paper that takes the same starting point as freqgen
+(real images have an invariant spectral distribution; fakes deviate from it) and
+turns it into a state-of-the-art detector. Understanding it is crucial for
+positioning freqgen's contribution.
+
+### What SPAI does that freqgen doesn't yet
+
+| | freqgen (now) | SPAI |
+|---|---|---|
+| Fingerprint | Hand-crafted radial profile | **Learned** in ViT latent space |
+| Model | Logistic regression on 128 features | ViT-B/16 (MFM pre-trained) + SRS + SCA |
+| Training data needed | Synthetic / CIFAR reals only | 180k real + 180k LDM fakes |
+| Any-resolution | No (resize to 256²) | **Yes** — patch-level SCA |
+| Robustness | Fragile (radial attack evades 100%) | 5.5% AUC SOTA on 13 generators |
+
+### How SPAI works (key architecture)
+
+1. **Masked Spectral Learning pretext task.** A ViT-B/16 (pre-trained with
+   Masked Frequency Modeling, [MFM repo](https://github.com/Jiahao000/MFM)) is
+   frozen. It has learned to reconstruct masked high/low frequency components,
+   so it has baked in the spectral structure of real images.
+
+2. **Frequency masking.** Given image $x$, compute $\Phi=\mathcal{F}(x)$, mask
+   by a circle of radius $r=16$:
+   $x_h = \mathcal{F}^{-1}(\Phi \odot M)$,
+   $x_l = \mathcal{F}^{-1}(\Phi \odot (1-M))$.
+
+3. **Spectral Reconstruction Similarity (SRS).** Pass $x$, $x_h$, $x_l$ through
+   the frozen ViT-B to get latent vectors $z_n, z_n^h, z_n^l$ for each of the
+   $N=12$ transformer blocks. Measure cosine similarity between pairs:
+   $\eta_{ol}$, $\eta_{oh}$, $\eta_{lh}$ — a 6-dimensional vector per block,
+   $6N=72$ total. **This is a learned version of freqgen's `spectral_report`.**
+
+4. **Spectral Context Vector (SCV).** Summarizes spectral context (mean + std
+   of $z_n$ across ViT tokens) so the network knows *where* in the image each
+   SRS value came from.
+
+5. **Spectral Context Attention (SCA).** Splits the image into $K$ patches of
+   $224\times224$, computes the spectral vector $z_S^k$ per patch, then uses a
+   single attention step (O(K)) to aggregate into one image-level vector. This
+   is what gives any-resolution capability without resizing.
+
+6. **Classification.** 3-layer MLP head on $z_S$. Trained with binary
+   cross-entropy. One Nvidia **L40S 48GB GPU** for training (inference <8GB).
+
+### The critical open question for freqgen's paper
+
+**Does the radial matching attack defeat SPAI?**
+
+- freqgen's attack closes the *azimuthally-averaged* magnitude profile (the hand-
+  crafted fingerprint) → evades the radial logistic-regression detector 100%.
+- SPAI's SRS is computed from ViT **latent representations**, not from the raw
+  radial profile directly. The ViT could have learned higher-order spectral
+  features that survive radial magnitude matching.
+- Testing this requires downloading SPAI's weights (~inference <8GB GPU) and
+  pushing matched fakes through it.
+
+**If SPAI is NOT evaded** → freqgen's conclusion becomes: learned detectors are
+robust; hand-crafted ones aren't. The attack is a useful evaluation tool.
+
+**If SPAI IS evaded** → freqgen has found a gap in the CVPR 2025 SOTA and the
+paper becomes much stronger (an adversarial attack that beats the best known
+detector).
+
+Either way this is a publishable finding. Running SPAI inference only needs a
+small GPU (see below).
+
+## 5. Where a GPU is needed, and roughly how much
 
 **Everything above is CPU.** The matching, the detectors, the evasion harness,
 and the figures all run on a laptop. A GPU is needed for exactly one thing:
@@ -193,7 +268,17 @@ Rules of thumb:
   of these — single-digit dollars on paid Colab/cloud, or free on Colab T4.
 
 ### What to run next (the part that needs the GPU)
-1. In `notebooks/Spectral Detectors and Evasion.ipynb`, set `USE_SYNTHETIC=False`
-   and feed it the real CIFAR images + SD/SDXL fakes from Notebook 1.
-2. Re-run the evasion table on real data → that table is the paper's headline.
-3. (Optional) add SDXL as a second generator to show the result generalizes.
+
+**Priority 1 — small GPU, ~8GB VRAM (any Colab T4 or better):**
+1. Download SPAI weights from the [Google Drive link](https://drive.google.com/file/d/1vvXmZqs6TVJdj8iF1oJ4L_fcgdQrp_YI/view?usp=sharing)
+2. `pip install` the [SPAI repo](https://github.com/mever-team/spai) (inference only, no APEX needed)
+3. Run SPAI inference on (a) raw SD fakes and (b) spectrally-matched fakes from Notebook 3
+4. Compare scores → if matched fakes score lower (closer to real), SPAI is partially evaded
+
+**Priority 2 — mid GPU, ~16GB (Colab T4 / Colab Pro L4):**
+5. Generate 200 SD 1.5 fakes via Notebook 1 → feed into the evasion notebook with `USE_SYNTHETIC=False`
+6. (Optional) SDXL for a second generator
+
+**Priority 3 — big GPU only if needed (~48GB L40S/A100):**
+7. Re-train SPAI from scratch — only needed if you want to show the attack transfers to
+   the trained model, not just its weights. Not required for a first paper draft.
