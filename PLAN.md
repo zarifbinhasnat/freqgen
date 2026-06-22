@@ -62,16 +62,18 @@ direct download, no GPU, no login.
 
 ## 3. The plan — step by step
 
-### Phase A — real data, CPU only  ← **DO THIS NEXT**
-- [ ] A1. Download RAISE-1k + Synthbuster (SD1.4, SDXL) per `DATASETS.md`.
-- [ ] A2. Write a tiny loader: read SPAI's `fake_sd14.csv` / `real_raise.csv`,
-      load images, resize 256². (Offer: I can add `src/data.py` + a cell.)
-- [ ] A3. Re-run Notebook 1 metrics on **real data** → confirm the ~21× gap
-      reproduces on Synthbuster (not just synthetic). Save figure.
-- [ ] A4. Run the attack (Notebook 3) on real Synthbuster fakes → gap closure
-      table on real images. **This replaces the synthetic numbers.**
-- [ ] A5. Run detectors + evasion (Notebook 5) with `USE_SYNTHETIC=False` →
-      real-data evasion table (radial vs residual). **Paper headline #1.**
+### Phase A — real data ← **PARTIALLY DONE (2026-06-23)**
+- [x] A1. Download COCO val2017 (real, 778 MB) + Synthbuster SD1.4 (1000 fakes).
+- [x] A2. Run spectral matching attack on real Synthbuster fakes → gap closes to ~1x.
+- [x] A3. Measure high-band gap and slope on real data.
+- [ ] A1b. Download RAISE-1k (scene-paired with Synthbuster) — manual form download.
+      Needed to reproduce the expected 21x deficit direction (COCO reverses the gap).
+- [ ] A5. Run radial+residual detector evasion on real data (currently only synthetic).
+
+**Key finding 2026-06-23:** Gap is dataset-dependent.
+  COCO real vs SD1.4 fake: gap = 0.8x (reversed — fakes have MORE HF than COCO)
+  Matched fakes vs COCO:   gap = 1.03x (attack closes it either direction)
+  RAISE-1k real vs SD1.4:  expected ~21x deficit (need to verify with real data)
 
 ### Phase B — test against SPAI  (small <8GB GPU, or slow CPU)
 - [ ] B1. Install SPAI (inference only), download weights checkpoint.
