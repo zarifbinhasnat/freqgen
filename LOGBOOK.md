@@ -38,8 +38,19 @@
   and the key open question: does the radial matching attack evade SPAI too?
   If yes -> CVPR 2025 SOTA has a gap; if no -> learned detectors are robust.
   Either is publishable. SPAI inference needs <8GB GPU (free T4 enough).
-- Next: download SPAI weights, run inference on raw vs matched fakes on Colab T4,
-  report SPAI score change -> that is the headline result.
+- Located SPAI's EXACT evaluation dataset (18 CSVs in spai/data): 13 generators
+  + 5 real sources. Fakes: 9 from Synthbuster (Zenodo 10066460) + 4 (sd3, mjv61,
+  gigagan, flux) from SPAI authors' Google Drive. Reals: RAISE-1k, COCO2017,
+  ImageNet, OpenImages, FODB. CSV format: image,class,split (1=fake,0=real).
+  Synthbuster fakes are scene-paired with RAISE-1k reals -> ideal for matching.
+- Decision: use SPAI's exact public dataset, NO image generation. Eliminates the
+  generation GPU step entirely.
+- Added DATASETS.md (exact dataset list + downloads + recommended starting
+  subset) and PLAN.md (master plan: recap of all work, locked dataset, phased
+  roadmap A/B/C, compute budget, open question).
+- Next (Phase A, CPU): download RAISE-1k + Synthbuster SD1.4/SDXL, write loader
+  for SPAI CSVs, reproduce 21x gap on real data, run attack + evasion on real
+  images. Then Phase B: run SPAI inference on raw vs matched fakes.
 
 ## 2026-06-07
 
