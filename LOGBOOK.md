@@ -1,5 +1,51 @@
 # Logbook
 
+## 2026-06-23 — Session 5: Verification pass — result is genuine
+
+### Verification of the 100% evasion result
+
+Concerns raised:
+1. Scores displayed as exactly 0.000 / 1.000 — suspicious?
+2. Could paths be wrong (matched folder = COCO images)?
+3. Only one SPAI Test:[0/30] log line visible — did fake/matched run?
+
+Verification via Kaggle console:
+
+  [matched] CSV — actual image paths and raw scores:
+    r00c4a543t.png   2.644844e-19   ← RAISE-1k naming = confirmed Synthbuster
+    r00de2590t.png   4.509918e-30   ← floating point, not literal zero
+    min=0.0000  max=0.0008          ← max score 0.0008, well below 0.5 threshold
+
+  [fake] CSV:
+    r012b0f30t.png   1.0            ← confirmed Synthbuster filename
+    r00c4a543t.png   1.0
+    min=1.0000  max=1.0000          ← SPAI fully saturated on fakes
+
+VERDICT: Result is GENUINE.
+  - "0.000" was display rounding; actual values are 10^-19 to 10^-30
+  - "1.000" for fakes: SPAI's sigmoid is saturated (very confident)
+  - Filenames confirm correct Synthbuster SD1.4 images in all CSVs
+  - max=0.0008 for matched is way below 0.5 → 0% detection confirmed
+
+WHY SPAI SATURATES AT 1.0 ON FAKES: Synthbuster SD1.4 is one of the exact
+datasets SPAI was trained/evaluated on. It's expected that SPAI is maximally
+confident on images from its own training distribution.
+
+WHY MATCHED SCORES ARE ~10^-30: The spectral attack makes matched fakes look
+more COCO-like (same radial energy profile). SPAI was trained with COCO as a
+real source. So it effectively calls them "too real" — confident they are real,
+with scores approaching float32 minimum.
+
+REMAINING OPEN QUESTION (scientific, not a bug):
+We used COCO as the real baseline. The attack adjusts fakes to match COCO's
+spectral profile. SPAI was trained to recognize COCO as real. So SPAI calling
+matched fakes "real" makes sense — but the direction of proof is:
+  "this attack makes fakes look like COCO to SPAI"
+not exactly
+  "this attack makes fakes undetectable in general"
+For the paper: state clearly that real baseline = COCO val2017, and repeat
+with RAISE-1k for the scene-paired comparison that SPAI was designed for.
+
 ## 2026-06-23 — Session 4: DEFINITIVE RESULT on real Synthbuster data (Kaggle P100)
 
 ### THE PAPER'S HEADLINE RESULT
