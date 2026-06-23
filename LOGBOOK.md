@@ -1,5 +1,39 @@
 # Logbook
 
+## 2026-06-23 — Session 3: Synthbuster on Drive, Colab quota hit
+
+### Progress
+- Drive mount fixed: changed `except Exception` → `except BaseException` to
+  catch `KeyboardInterrupt` from Drive auth timeout.
+- Drive mounted successfully on second attempt (was already mounted).
+- COCO val2017 reused from previous session (instant, 5000 images).
+- **Synthbuster SD1.4 (1000 images, 12372 MB) fully downloaded and saved to
+  Google Drive at MyDrive/freqgen_data/synthbuster_sd14/**.
+  Next session: cell 6 will find it on Drive instantly — no re-download.
+
+### Blocker: Colab daily quota exhausted
+- T4 GPU quota hit after 3 sessions today.
+- CPU runtime also unavailable ("Unable to connect to runtime").
+- Spectral attack + SPAI inference did NOT run on real Synthbuster data.
+- Quota resets in ~12-24h (midnight Pacific time).
+
+### What's ready for next session
+When GPU is available again (tomorrow or Kaggle):
+1. Data cell will instantly symlink Synthbuster from Drive.
+2. Spectral matching on 30 real SD1.4 fakes.
+3. SPAI inference on real/fake/matched → the definitive evasion table.
+Expected time: ~15 min total (no downloads needed).
+
+### Kaggle as alternative
+Kaggle provides free P100/T4 GPU, 30h/week quota, separate from Colab.
+Notebook needs to be adapted for Kaggle (different filesystem paths).
+
+### Drive mount fix documented
+Cell 6 in freqgen_colab_v2.ipynb:
+  - `except BaseException as e` (not `except Exception`)
+  - Falls back gracefully if mount fails (downloads to /content/ instead)
+  - Symlinks Drive Synthbuster to /content/ for fast access
+
 ## 2026-06-23 — Session 2: SPAI runs, evasion table confirmed
 
 ### THE HEADLINE RESULT
