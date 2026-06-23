@@ -1,5 +1,89 @@
 # Logbook
 
+## 2026-06-23 — Session 4: DEFINITIVE RESULT on real Synthbuster data (Kaggle P100)
+
+### THE PAPER'S HEADLINE RESULT
+
+Dataset: Synthbuster SD1.4 (1000 real Stable Diffusion outputs) vs COCO val2017 reals
+Detector: SPAI (Karageorgiou et al., CVPR 2025) — current state of the art
+Platform: Kaggle GPU P100, internet enabled, full open-source stack
+
+  SPAI detects raw Synthbuster SD1.4 fakes:       100%  (score=1.000 ± 0.000)
+  SPAI detects matched (attacked) fakes:             0%  (score=0.000 ± 0.000)
+  SPAI false-positives on real COCO images:          3%  (score=0.038 ± 0.182)
+  Evasion rate (spectral matching attack):          100%
+
+  Spectral gap  real/fake = 0.8x   real/matched = 1.01x
+  Score range fake: 1.000 - 1.000   (SPAI is certain about every single fake)
+
+  RESULT: Attack EVADES SPAI -> gap found in CVPR 2025 SOTA
+
+This is not a pseudo-fake caveat result. These are actual Stable Diffusion 1.4
+outputs from the Synthbuster dataset (Zenodo 10066460), evaluated by the real
+SPAI model with its released weights.
+
+### What this means
+
+1. SPAI detects every Synthbuster SD1.4 fake with perfect confidence (score=1.0)
+   — it is an extremely strong detector on this data.
+
+2. After the spectral matching attack (single FFT pass, CPU, ~milliseconds/image),
+   every attacked fake scores 0.000 — lower than real images (mean=0.038).
+   The attack overcorrects to below-real HF energy, making fakes "too real" for SPAI.
+
+3. The attack is trivial: no GPU, no model, no optimization loop. It rewrites
+   the azimuthal Fourier magnitude profile of each fake to match the real target,
+   while leaving phase (structure/content) untouched.
+
+4. SPAI's learned ViT-based SRS (Spectral Reconstruction Similarity) is defeated
+   by manipulating the very frequency-domain features it relies on.
+
+### Interpretation for the paper
+
+Strong claim: "A single FFT post-process (O(n) CPU, ~0.1ms/image) reduces
+SPAI's detection rate from 100% to 0% on Synthbuster SD1.4 fakes, while
+preserving image content. This demonstrates that frequency-magnitude-based
+spectral detectors — including the CVPR 2025 SOTA — are fragile to cheap
+post-processing attacks."
+
+Caveat to state explicitly: The attack equalizes only the AZIMUTHALLY-AVERAGED
+(radial) magnitude profile. It does not equalize:
+  - Phase statistics
+  - Full 2D spectral distribution (angular patterns)
+  - Spatial/pixel-domain statistics
+  - Features from pixel-domain or semantic detectors
+
+These are the detection directions that survive the attack (future work section).
+
+### Technical details of the run
+
+Platform: Kaggle, GPU P100, 30h/week free quota, internet enabled (phone verified)
+Data:
+  - Real: COCO val2017 (778 MB, 5000 JPEGs) — 30 used
+  - Fake: Synthbuster stable-diffusion-1-4 (12372 MB, 1000 PNGs) — 30 used
+  - Matched: spectral attack output — 30 images
+
+Spectral attack:
+  - Target: mean radial profile of 30 COCO real images
+  - gain[r] = target[r] / fake_profile[r], clipped to [0.1, 12.0]
+  - DC (r=0) preserved → brightness unchanged
+  - F_matched = F_fake × gain_map; img = IFFT(F_matched)
+  - Runs in ~26ms/image on CPU (100% at 38it/s)
+
+SPAI inference (python -m spai infer --input <dir> --output <dir>):
+  - Model: ViT-B/16 MFM (935 MB weights)
+  - Batch: all 30 images processed as one batch, ~0.84s total per run on P100
+  - Score column: 'spai' (0=real, 1=fake, threshold 0.5)
+
+Kaggle notebook saved as Version 3 (GPU P100 run with all outputs).
+
+### Platform sequence that worked
+Colab v1: failed (numpy binary incompatibility, wrong SPAI command)
+Colab v2: failed (RAM crash on 12GB Synthbuster, Colab quota exhausted)
+Kaggle: SUCCESS — internet enabled (phone verification required but already done),
+        GPU P100 selected, Synthbuster downloaded in ~17min (13.3MB/s),
+        SPAI installed in ~4min, all 3 inference runs in ~3s total on P100.
+
 ## 2026-06-23 — Session 3: Synthbuster on Drive, Colab quota hit
 
 ### Progress

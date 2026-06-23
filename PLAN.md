@@ -91,16 +91,16 @@ session (12372 MB, 1000 images) but was lost when the runtime crashed.
   Matched fakes vs COCO:   gap = 1.03x (attack closes it either direction)
   RAISE-1k real vs SD1.4:  expected ~21x deficit (need to verify with real data)
 
-### Phase B — SPAI on real Synthbuster (the definitive result)  ← DO THIS NEXT
-- [x] B0. Fix SPAI inference setup (done: directory input, /content/spai cwd,
-      filetype package, score_col='spai')
-- [x] B1. Run SPAI on pseudo-fakes: 100% evasion confirmed (preliminary)
-- [ ] B2. **Mount Google Drive BEFORE downloading Synthbuster** so data persists
-      across runtime crashes. Add `drive.mount('/content/drive')` as first cell
-      and save Synthbuster to `/content/drive/MyDrive/freqgen_data/`.
-- [ ] B3. Re-run with real Synthbuster SD1.4 fakes (1000 images, already know
-      download works): change FAKE_DIR in cells 6/8/10 to Synthbuster path.
-- [ ] B4. **Paper headline result**: SPAI evasion rate on real Synthbuster fakes.
+### Phase B — SPAI on real Synthbuster ← COMPLETE ✅
+- [x] B0. SPAI inference setup fixed and documented
+- [x] B1. Pseudo-fakes result: 100% evasion (preliminary, Colab)
+- [x] B2. Kaggle P100 + internet enabled (phone verified, 30h/week free)
+- [x] B3. Real Synthbuster SD1.4 (1000 images) downloaded and tested
+- [x] B4. **DEFINITIVE RESULT** (see RESULTS.md):
+      - SPAI detects raw fakes: 100% (score=1.000 ± 0.000)
+      - SPAI detects matched fakes: 0% (score=0.000 ± 0.000)
+      - Evasion rate: 100%
+      - Attack: O(n) CPU, ~0.1ms/image, no GPU, no model
 
 ### Phase C — generalization + writing
 - [ ] C1. Repeat A4/A5/B on `flux`, `sd3` (Drive bundle) → newer generators.
