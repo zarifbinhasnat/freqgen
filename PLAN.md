@@ -60,6 +60,22 @@ direct download, no GPU, no login.
 
 ---
 
+## 3. Status update (2026-06-23)
+
+### Completed
+- [x] SPAI inference working: correct setup documented, runs clean on T4
+- [x] Evasion table produced on COCO+pseudo-fakes: 100% evasion, 10.3x->1.19x gap
+- [x] All bugs fixed in freqgen_colab_v2.ipynb (cells 6,8,10,14)
+- [x] Score column confirmed as 'spai'
+- [x] numpy situation understood: cupy on Colab forces 2.0.2 regardless of SPAI
+      spec (1.26.4), but clean sequential install avoids binary incompatibility
+
+### Open caveat (blocks paper submission)
+The 100% evasion was on COCO+pseudo-fakes. SPAI is trained on LDM fakes,
+not FFT-suppressed COCO images. We need the result on **real Synthbuster SD1.4
+fakes** to make the claim airtight. Synthbuster downloaded successfully in the
+session (12372 MB, 1000 images) but was lost when the runtime crashed.
+
 ## 3. The plan — step by step
 
 ### Phase A — real data ← **PARTIALLY DONE (2026-06-23)**
@@ -75,11 +91,16 @@ direct download, no GPU, no login.
   Matched fakes vs COCO:   gap = 1.03x (attack closes it either direction)
   RAISE-1k real vs SD1.4:  expected ~21x deficit (need to verify with real data)
 
-### Phase B — test against SPAI  (small <8GB GPU, or slow CPU)
-- [ ] B1. Install SPAI (inference only), download weights checkpoint.
-- [ ] B2. Run `python -m spai infer` on (a) raw fakes, (b) matched fakes.
-- [ ] B3. Compare SPAI scores raw vs matched. **Paper headline #2 — the answer
-      to "does the attack beat the SOTA?"**
+### Phase B — SPAI on real Synthbuster (the definitive result)  ← DO THIS NEXT
+- [x] B0. Fix SPAI inference setup (done: directory input, /content/spai cwd,
+      filetype package, score_col='spai')
+- [x] B1. Run SPAI on pseudo-fakes: 100% evasion confirmed (preliminary)
+- [ ] B2. **Mount Google Drive BEFORE downloading Synthbuster** so data persists
+      across runtime crashes. Add `drive.mount('/content/drive')` as first cell
+      and save Synthbuster to `/content/drive/MyDrive/freqgen_data/`.
+- [ ] B3. Re-run with real Synthbuster SD1.4 fakes (1000 images, already know
+      download works): change FAKE_DIR in cells 6/8/10 to Synthbuster path.
+- [ ] B4. **Paper headline result**: SPAI evasion rate on real Synthbuster fakes.
 
 ### Phase C — generalization + writing
 - [ ] C1. Repeat A4/A5/B on `flux`, `sd3` (Drive bundle) → newer generators.
